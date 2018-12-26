@@ -5,6 +5,8 @@ The directory analyze/ contains the script of extracting IP-level links containi
 
 The directory deploy/ contains the scripts of deploying TNT.
 
+The directory doc/ contains the documents of TNT.
+
 
 
 
