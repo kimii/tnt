@@ -20,5 +20,19 @@
 - 识别不可见 MPLS 隧道原因或目的
 	- traceroute 测量结果不完整，导致 Internet 图存在潜在歧义
 	- 更好的捕获网络时延异常现象
-- 
+
+## 发现不可见 MPLS 隧道
+- 4 种方法
+	- 隐藏跳数
+		- FRPLA(Forward/Return Path Length Analysis):往返路径长度分析
+		- RTLA(Return Tunnel Length Analysis):返回隧道长度分析
+	- 恢复跳
+		- DPR(Direct Path Revelation):直接路径恢复
+		- BRPR(Backward Recursive Path Revelation):后向递归恢复
+- 效果
+	- 利用 4 种技术能捕获大多数 MPLS 使用情况
+		- Juniper 和 Cisco 的标准行为和典型的 MPLS/IGP/BGP 网络配置
+
+
+ 
 	
