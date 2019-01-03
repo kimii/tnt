@@ -97,7 +97,7 @@
 					- FRPLA((Forward/Return Path Length Analysis)：往返隧道长度分析，即分析往返路径长度的不同，从 traceroute 探测和 reply 消息中获取
 			2. UHP 模式下
 				1. 发现技术：两个连续跳出现重复 IP，具体的，对于 IP-TTL 为 1 的包，Egress LER 不会减小该 TTL，而是转发包给下一跳，因此 Egress 不会出现在 trace 路径中，但下一跳会出现两次
-# TNT
+## TNT
 - TNT 能够恢复一条路径的**所有** MPLS 隧道，基于 Paris Traceroute 来避免负载均衡带来的问题
 - TNT 工作模式
 	- 检查隧道存在性：
@@ -130,6 +130,6 @@
 
 
 
-# TNT 使用
+## TNT 使用
 1. 相关参数（门限值设定）	
 	1. T(RTLA),T(FRPLA)
