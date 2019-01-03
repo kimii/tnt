@@ -114,8 +114,9 @@
 					- 对 Juniper 路由器来说，情况大不相同，默认（如没有激活 icmp-tunneling 特性，参见附录 IX-A.2），这些路由器将超时回复消息直接发送给源，而非转发给 Egress LER，此时 UTURN 无效。更多的，对于有着与 JunOS 同样指纹的路由器，UTURN 指示器和 RTLA 触发器的计算方法一致。所以，避免混淆，TNT 对这样的 OS 指纹引入了一个特例。此外，当 icmp-tunneling 激活，超时回复消息 TTL 从 254 开始，意味着与 echo-request 回复的巨大不同，在 图2中可以看出，UTURN(P1)=7 而非运行 Cisco OS 的 6
 			- 指示器是 MPLS 的被动证据，并防止 TNT 发起新的探测（除了 LSE-TTL 也作为 OPA 隧道的触发器）。相反，触发器作为主动特征，可以使用而外的探测
 		- triggers（触发器）：只要是无符号值揭示不可见隧道的存在的潜在可能,通过在路径长度不对称中的大的 shfit
-			- 潜在的 INV UHP 隧道：会出现在使用 IOS 15.2 的 Cisco 路由器上，当接受到 TTL 为 1 的包时，Egress LER 不会减少 TTL，相反将其转发给下一跳。结果 Egress LER 不会出现在 trace 中，相反其下一跳出现两次。
-			- RTLA 和 FPRLA 都基于这样的想法:发送给 VP 的回复也可能穿过 MPLS 云，这意味在 EH 初将采用 MIN(IP-TTL，LSE-TTL)操作。它们分别推断准确的（RTLA）和近似的（FPRLA）返回路径长度
+			- 潜在的 INV UHP 隧道：会出现在使用 IOS 15.2 的 Cisco 路由器上，当接收到 TTL 为 1 的包时，Egress LER 不会减少 TTL，相反将其转发给下一跳。结果 Egress LER 不会出现在 trace 中，相反其下一跳出现两次。
+			- RTLA 和 FPRLA 都基于这样的想法:发送给 VP 的回复也可能穿过 MPLS 云，这意味在 EH 处
+			- 将采用 MIN(IP-TTL，LSE-TTL)操作。它们分别推断准确的（RTLA）和近似的（FPRLA）返回路径长度
 				- 实际上，与 RTLA 不同(TE，ER 包返回路径长度相等)，FPRLA 受 BGP 路径不对称影响（可能产生错误警报，但只从 ECMP（负载均衡）产生）
 				- RTLA 只对 JunOS 路由器有效，FRPLA 更一般
 			- RTLA 和 FRPLA 影子（离开 LSP 后，依然触发）是 TNT 在 trace 中不寻找连续的不可见隧道

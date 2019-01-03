@@ -48,7 +48,7 @@
 -  恢复隐藏跳
 	- 这些方法的基本想法是在 MPLS 网络中，不是所有包都通过 LSP 转发。因为 LSP 可能只针对一个内部前缀的子网构造（如 Juniper 路由器的环回地址（Lookback address），然而，Cisco 路由器为所有内部前缀创建 LSP）或者只有目的地为 BGP 下一跳的包可能通过 MPLS 作交换（也是 Juniper 路由器的一个默认行为）。如果能 traceroute 路由器其中一个内部 IGP IP 地址（属于于内部流量相关的前缀），如 Egress LER（在 PHP 中）的入接口，可以看见明显的不带标签的 IGP 路由，所以可推断出隐藏 LDP 隧道。
 	- 此外，Cisco 路由器也可以这样配置，当网络根据 IGP/BGP 结构划分为核心和边界路由器时（如避免外部路由重新分配给 IGP-only LSR）。可以很容易地配置 LDP 前缀过滤器来限制外部 BGP 传输流量(transit traffic)的 LDP 信号（signalling）。在两种情况（Juniper 默认或基本 Cisco 配置）和在 LER 上使用 BGP 下一跳特点时，所有外部 BGP 传输流量通过 MPLS 隧道，然而以内部 IP 前缀为目标的流量通过 IGP 显示路由。图4c，表明使在 Cisco 路由器上模仿 Juniper 行为，使用命令 mpls ldp label allocate global host-routes：如果以 Egress PE2.left 的入接口(该接口与最后一跳 P3 共享一个前缀)为目标，一次探测揭示明显的 IGP 路由。这是**直接路径恢复**的原则（Direct Path Revelation，DPR）。
-	- **后向递归恢复**(Backward Recursive Path Revelation，BRPR)基于 PHP 特点，当网络完全使用 LDP 时(Cisco LSR 的标准和默认行为)。由于 traceroute 自然地揭示了每个 Egress LER 的入 IP 接口，可以运递归的 traceroute 方法，以最后一个内部前缀为目标，从 Egress LER 到 Ingress LER 以后向的方式来恢复每一个中间跳，当 BGP 路由对所有目标 AS 的内部前缀保持相似，这种方法很有效，如它们通过同样的 Ingress LER 进入，遵循一致的最短 IGP 路径（默认 LDP 行为）。值得一提的是，每个 Egress LSR 入 IP 接口出现多亏了 PHP 和这个事实--IP 前缀属于最后一跳和 Egress LSR。在图 4b 例子中需要有 4 步来停止递归和后向恢复所有内部 LSR
+	- **后向递归恢复**(Backward Recursive Path Revelation，BRPR)基于 PHP 特点，当网络完全使用 LDP 时(Cisco LSR 的标准和默认行为)。由于 traceroute 自然地揭示了每个 Egress LER 的入 IP 接口，可以用递归的 traceroute 方法，以最后一个内部前缀为目标，从 Egress LER 到 Ingress LER 以后向的方式来恢复每一个中间跳，当 BGP 路由对所有目标 AS 的内部前缀保持相似，这种方法很有效，如它们通过同样的 Ingress LER 进入，遵循一致的最短 IGP 路径（默认 LDP 行为）。值得一提的是，每个 Egress LSR 入 IP 接口出现多亏了 PHP 和这个事实--IP 前缀属于最后一跳和 Egress LSR。在图 4b 例子中需要有 4 步来停止递归和后向恢复所有内部 LSR
 - 讨论
 	- 技术涵盖所有基本的 MPLS 配置，除了完全不可见的 UHP（主要为了流量工程，让 RSVP-TE 隧道不可见，但部署 RSVP-TE 一般也会部署 LDP）
 		- Cisco 的主要配置（PHP 和 允许所有前缀）可以用 FRPLA 和 BRPR
