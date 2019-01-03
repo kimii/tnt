@@ -97,4 +97,39 @@
 					- FRPLA((Forward/Return Path Length Analysis)：往返隧道长度分析，即分析往返路径长度的不同，从 traceroute 探测和 reply 消息中获取
 			2. UHP 模式下
 				1. 发现技术：两个连续跳出现重复 IP，具体的，对于 IP-TTL 为 1 的包，Egress LER 不会减小该 TTL，而是转发包给下一跳，因此 Egress 不会出现在 trace 路径中，但下一跳会出现两次
+# TNT
+- TNT 能够恢复一条路径的**所有** MPLS 隧道，基于 Paris Traceroute 来避免负载均衡带来的问题
+- TNT 工作模式
+	- 检查隧道存在性：
+		- indicators（指示器）：不需要额外探测提供可靠 MPLS 隧道存在的指示
+			- 关心在哪能从原始 traceroute 直接恢复隧道
+			- 一般用于 EXP 隧道（通过直接引用于 ICMP 超时消息的 **LSE** 显示出来）
+			- 对于 OPA 隧道，引用的 **LSE-TTL** 需要满足 T(LSE_TTL)<=LSE-TTL<255, T(LSE-TTL)为固定的最小门限值，注意 OPA 隧道使用了 indicator 和 trigger，TNT 被动理解了隧道是不完整的，尝试用新的主动测量恢复内容
+			- IMP 隧道通过 **qTTL 或 UTURN** 指示
+				- 如果在 ICMP 超时消息中的 IP-TTL(qTTL)大于 1，这可能揭示了在 LSP 的 Ingress LER 处的 ttl-porpogate 选项（此后 LSP 中 LSE-TTL 递减，IP-TTL 不变）。对于 LSP 中后续的探测，qTTL 会按加 1 递增，形成增长的序列
+				- UTURN 指示器
+					- UTURN 依赖于这样的事实，默认，LSR 将 ICMP 超时消息发送给 Egress LER （其将一次将包转发给探测源），然而 LSR 在针对其它类型探测包（如 echo-request 包）可行的话，将使用它们自己的 IP 转发表直接回复。总而言之，超时包的返回路径比 echo-request 包更长，因而，UTURN 作为关联这些不同长度的指纹。 UTURN 计算公式
+						- $$UTURN(Pi)=L^{TE}\_R-L^{ER}\_R=2*(LL-i+1)$$
+					- 由于 iBGP 的路径差异性（path heterogeneity，特别的 IGP tie-break 规则），ICMP echo-reply 消息的 BGP 返回路径与超时回复消息的 BGP 返回路径不同，总之，UTURN 可能在每个中间跳不同，所以不必要完全准寻上述公式，实践中小的变化可能出现，特别的，UTURN 为 0 也可能隐藏一个真实的 IMP 跳
+					- 对 Juniper 路由器来说，情况大不相同，默认（如没有激活 icmp-tunneling 特性，参见附录 IX-A.2），这些路由器将超时回复消息直接发送给源，而非转发给 Egress LER，此时 UTURN 无效。更多的，对于有着与 JunOS 同样指纹的路由器，UTURN 指示器和 RTLA 触发器的计算方法一致。所以，避免混淆，TNT 对这样的 OS 指纹引入了一个特例。此外，当 icmp-tunneling 激活，超时回复消息 TTL 从 254 开始，意味着与 echo-request 回复的巨大不同，在 图2中可以看出，UTURN(P1)=7 而非运行 Cisco OS 的 6
+			- 指示器是 MPLS 的被动证据，并防止 TNT 发起新的探测（除了 LSE-TTL 也作为 OPA 隧道的触发器）。相反，触发器作为主动特征，可以使用而外的探测
+		- triggers（触发器）：只要是无符号值揭示不可见隧道的存在的潜在可能,通过在路径长度不对称中的大的 shfit
+			- 潜在的 INV UHP 隧道：会出现在使用 IOS 15.2 的 Cisco 路由器上，当接受到 TTL 为 1 的包时，Egress LER 不会减少 TTL，相反将其转发给下一跳。结果 Egress LER 不会出现在 trace 中，相反其下一跳出现两次。
+			- RTLA 和 FPRLA 都基于这样的想法:发送给 VP 的回复也可能穿过 MPLS 云，这意味在 EH 初将采用 MIN(IP-TTL，LSE-TTL)操作。它们分别推断准确的（RTLA）和近似的（FPRLA）返回路径长度
+				- 实际上，与 RTLA 不同(TE，ER 包返回路径长度相等)，FPRLA 受 BGP 路径不对称影响（可能产生错误警报，但只从 ECMP（负载均衡）产生）
+				- RTLA 只对 JunOS 路由器有效，FRPLA 更一般
+			- RTLA 和 FRPLA 影子（离开 LSP 后，依然触发）是 TNT 在 trace 中不寻找连续的不可见隧道
+			- 在 UHP 中无法看到 min shift
+			- 长度差异判定依据门限值（排除 BGP 和 ECMP 噪声），优化门限值设定可带来 80/20% 的正误比
+			- 一跳同时匹配多个触发器，归属到最高优先级，如 RTLA > FRPLA 
+	- 隐藏隧道恢复
+		- DPR
+		- BRPR
+		- 在 Cisco IOS 15.2 上的默认配置，而外测试成为 buddy，需要检索 Egress LER 出口 IP 接口，强制把恢复从入 IP 接口。buddy 函数假设 Egress LER 和下一跳的点对点连接，考虑 /30 或 /31 前缀
+		- UHP(BRPR) 在 IOS 12.4（如 没有 buddy 函数），对 PHP 同样原因:前缀是局部的，shift 在隧道终点前一跳；相反 TNT 需要在每一步使用 buddy 函数，对 IOS 15.2 激活 UHP，因为 EH 无声地在前一跳转发包
 
+
+
+# TNT 使用
+1. 相关参数（门限值设定）	
+	1. T(RTLA),T(FRPLA)
