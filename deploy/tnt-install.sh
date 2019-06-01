@@ -5,6 +5,21 @@ type sc_tnt >/dev/null 2>&1 && echo -e "\033[32m[ SUCCESS sc_tnt ]\033[0m"
 type sc_tnt >/dev/null 2>&1 && exit || echo -e "\033[32m[ START sc_tnt ]\033[0m"
 
 cd /home/root/TNT
+# check openssl version 1.0.2
+v=$(echo $(openssl version) | cut -d' ' -f2)
+if [ ${v%?} != "1.0.2" ]; then
+  apt remove openssl
+  wget --no-check-certificate https://www.openssl.org/source/openssl-1.0.2s.tar.gz
+  tar zxvf openssl-1.0.2s.tar.gz
+  rm openssl-1.0.2s.tar.gz
+  cd openssl-1.0.2s/
+  ./config --prefix=/usr/local --openssldir=/usr/local/openssl
+  make && make install
+  ln -s /usr/local/ssl/bin/openssl /usr/bin/openssl
+  ln -s /usr/local/ssl/include/openssl /usr/include/openssl
+  cd ..
+fi
+test ${v%?} != "1.0.2" && exit
 # install m4
 type m4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
